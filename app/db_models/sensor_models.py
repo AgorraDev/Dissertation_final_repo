@@ -72,7 +72,7 @@ class TraceEvent(Base):
     source = Column(String)
     details = Column(JSONB)
     # lambda function to call datetime.now on each insert rather than once at model creation
-    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), index=True)
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), index=True)
 
 class AnomalyLog(Base):
     __tablename__ = "anomaly_log"

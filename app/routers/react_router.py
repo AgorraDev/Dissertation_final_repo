@@ -1,14 +1,15 @@
-import logging
 from typing import List
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from app.db.database import get_db
-from app.schemas.sensor_schemas import WeatherDataTrace, GenerationDataTrace
+from app.schemas.sensor_schemas import WeatherDataTrace, GenerationDataTrace, TraceEventOut
 from app.db_models.sensor_models import (
     WeatherData as WeatherModel,
     GenerationData as GenerationModel,
-    AnomalyLog as AnomalyModel)
+    AnomalyLog as AnomalyModel,
+    TraceEvent as TraceEventModel,
+)
 
 router = APIRouter()
 
@@ -61,3 +62,16 @@ def anomalies(db: Session = Depends(get_db)):
         })
 
     return messages
+
+@router.get("/trace/{trace_id}", response_model=List[TraceEventOut])
+def trace_detail(trace_id: str, db: Session = Depends(get_db)):
+    events = db.scalars(
+        select(TraceEventModel)
+        .where(TraceEventModel.trace_id==trace_id)
+        .order_by(TraceEventModel.created_at, TraceEventModel.id)
+    ).all()
+
+    if not events:
+        raise HTTPException(status_code=404, detail=f"No trace events found for {trace_id}")
+
+    return events

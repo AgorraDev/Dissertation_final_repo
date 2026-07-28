@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 from datetime import datetime
 from pydantic import BaseModel, field_validator, Field
 
@@ -58,3 +59,16 @@ class WeatherDataTrace(WeatherData):
 
 class GenerationDataTrace(GenerationData):
     trace_id: str
+
+'''
+FRONTEND MODELS
+'''
+
+class TraceEventOut(BaseModel):
+    stage: str
+    status: str
+    source: str | None
+    details: Any = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
