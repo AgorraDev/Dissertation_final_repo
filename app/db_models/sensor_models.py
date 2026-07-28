@@ -1,4 +1,5 @@
-import enum
+from datetime import datetime, timezone
+from enum import StrEnum
 
 from sqlalchemy import (
     Column,
@@ -10,6 +11,7 @@ from sqlalchemy import (
     UUID,
     JSON,
     Enum)
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from app.db.database import Base
 '''
@@ -19,13 +21,13 @@ Define database tables for SQLAlchemy models.
 '''
 ENUMS FOR MAINTAINING STRICT OPTIONS
 '''
-class RESOLUTION_STATUS(str, enum.Enum):
+class RESOLUTION_STATUS(StrEnum):
 
     NON_ISSUE = "NON_ISSUE"
     FIXED = "FIXED"
     NEEDS_ATTENTION = "NEEDS_ATTENTION"
 
-class USER_ROLE(str, enum.Enum):
+class USER_ROLE(StrEnum):
 
     ADMIN = "ADMIN"
     MANAGER = "MANAGER"
@@ -60,6 +62,18 @@ class WeatherData(Base):
 '''
 LOGGING + AUDIT TABLES
 '''
+
+class TraceEvent(Base):
+    __tablename__ = "trace_events"
+    id = Column(Integer, primary_key=True, index=True)
+    trace_id = Column(String, index=True, nullable=False)
+    stage = Column(String, nullable=False)
+    status = Column(String, nullable=False)
+    source = Column(String)
+    details = Column(JSONB)
+    # lambda function to call datetime.now on each insert rather than once at model creation
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), index=True)
+
 class AnomalyLog(Base):
     __tablename__ = "anomaly_log"
     id = Column(Integer, primary_key=True, index=True)

@@ -17,15 +17,10 @@ INCOMING DATA FROM DATA STREAM
 class WeatherData(BaseModel):
     utc_timestamp: datetime
     GB_temperature: float
-    GB_radiation_direct_horizontal: float
-    GB_radiation_diffuse_horizontal: float
+    GB_radiation_direct_horizontal: float = Field(ge=0.0)
+    GB_radiation_diffuse_horizontal: float = Field(ge=0.0)
 
     model_config = {"from_attributes": True}
-    try:
-        GB_radiation_diffuse_horizontal: float = Field(ge=0.0)
-    except ValueError:
-        logger.warning(f"Negative IRRADIATION value: {GB_radiation_diffuse_horizontal}")
-        GB_radiation_diffuse_horizontal = None
 
     @field_validator('utc_timestamp', mode='before')
     @classmethod
@@ -38,12 +33,12 @@ class WeatherData(BaseModel):
 
 class GenerationData(BaseModel):
     utc_timestamp: datetime
-    GB_GBN_load_actual_entsoe_transparency: float
-    GB_GBN_load_forecast_entsoe_transparency: float
+    GB_GBN_load_actual_entsoe_transparency: float = Field(ge=0.0)
+    GB_GBN_load_forecast_entsoe_transparency: float = Field(ge=0.0)
     GB_GBN_price_day_ahead: float
-    GB_GBN_solar_capacity: float
-    GB_GBN_solar_generation_actual: float
-    GB_GBN_solar_profile:  float
+    GB_GBN_solar_capacity: float = Field(ge=0.0)
+    GB_GBN_solar_generation_actual: float = Field(ge=0.0)
+    GB_GBN_solar_profile:  float = Field(ge=0.0)
 
     model_config = {"from_attributes": True}
     @field_validator('utc_timestamp', mode='before')

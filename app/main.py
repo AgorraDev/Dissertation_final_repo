@@ -1,6 +1,6 @@
-import logging, uuid
+import logging
 from contextlib import asynccontextmanager
-from sqlite3 import OperationalError
+from sqlalchemy.exc import OperationalError
 
 from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
@@ -8,16 +8,11 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 
-from app.db.database import engine, SessionLocal
-from app.db.write_record import write_new_record
+from app.db.database import engine, SessionLocal, AuditSessionLocal
 from app.db_models import sensor_models
-from app.db_models.sensor_models import (
-            AnomalyLog as AnomalyLogModel,
-            GenerationData as GenerationDataModel,
-            WeatherData as WeatherSensorModel
-            )
 
 from app.routers import sensor_ingestion, react_router
+from app.services.ingest_failures import ingest_failures
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("System Log")
@@ -41,6 +36,9 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Database connection failed: {e}")
         raise e
+
+    app.state.db_sessionmaker = SessionLocal
+    app.state.audit_sessionmaker = AuditSessionLocal
 
     yield
 
@@ -78,56 +76,16 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     '''
     Intercept bad data before endpoint. Parse and log bad data.
     '''
-    trace_id = str(uuid.uuid4())
-    invalid_body = exc.body if isinstance(exc.body, dict) else {}
-    invalid_payload = {
-        "trace_id": trace_id,
-        "event": "validation_error",
-        "date_time": invalid_body["utc_timestamp"],
-        "source": "weather_data" if "GB_temperature" in invalid_body else "generation_data",
-        "reasons": [exc.errors()],
-        "bad_data": invalid_body
-    }
-    logger.error(f"Validation Failure:\n{invalid_payload.get("reasons")}")
-
-    ## TODO SEND 'invalid_payload' to database ERROR_PAYLOAD TABLE and DAILY_READINGS TABLE
+    source = "generation_data" if "generation" in request.url.path else "weather_data"
+    errors = jsonable_encoder(exc.errors())
 
     # Open session, try to write to Anomaly Log table, then close session
-    # Cannot use Depends as it is reserved for router endpoints
-    db = SessionLocal()
+    # Get Session from app.state - this allows us to test exception handler without writing to real db
+    db = request.app.state.db_sessionmaker()
     try:
-        # Write to anomaly table
-        anomaly_record = AnomalyLogModel(
-            trace_id=trace_id,
-            date_time=invalid_payload.get("date_time"),
-            source=invalid_payload.get("source"),
-            error_details=invalid_payload.get("reasons")[0][0],
-            error_payload=invalid_payload.get("bad_data"),
-        )
-        write_new_record(anomaly_record, trace_id, db)
-
-        # and to generation/weather tables so we have continuous data
-        if "SOLAR_CAPACITY" in invalid_payload.get("bad_data"):
-            new_generation_record = GenerationDataModel(
-                trace_id=trace_id,
-                date_time=invalid_body["utc_timestamp"],
-                load_actual_entsoe_transparency=invalid_body["GB_GBN_load_actual_entsoe_transparency"],
-                load_forecast_entsoe_transparency=invalid_body["GB_GBN_load_forecast_entsoe_transparency"],
-                price_day_ahead=invalid_body["GB_GBN_price_day_ahead"],
-                solar_capacity=invalid_body["GB_GBN_solar_capacity"],
-                solar_generation_actual=invalid_body["GB_GBN_solar_generation_actual"],
-                solar_profile=invalid_body["GB_GBN_solar_profile"],
-            )
-            write_new_record(new_generation_record, trace_id, db)
-        else:
-            new_weather_sensor_record = WeatherSensorModel(
-                trace_id=trace_id,
-                date_time=invalid_body["utc_timestamp"],
-                temperature=invalid_body.get("GB_temperature"),
-                radiation_direct_horizontal=invalid_body.get("GB_radiation_direct_horizontal"),
-                radiation_diffuse_horizontal=invalid_body.get("GB_radiation_diffuse_horizontal"),
-            )
-            write_new_record(new_weather_sensor_record, trace_id, db)
+        trace_id = ingest_failures(exc.body, errors, source, db)
+    except OperationalError as e:
+        logger.error(f"Failed to ingest failures: {e}")
     finally:
         db.close()
 
