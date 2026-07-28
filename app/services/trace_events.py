@@ -3,7 +3,7 @@ from enum import StrEnum
 from app.db.database import AuditSessionLocal
 from app.db_models.sensor_models import TraceEvent
 
-logger = logging.getLogger("Trace Events")
+logger = logging.getLogger("TraceEvents")
 
 class STAGE(StrEnum):
     RECEIVED = "received"
@@ -18,6 +18,7 @@ class STATUS(StrEnum):
     FAILED = "failed"
 
 def emit_trace_events(trace_id, stage, status=STATUS.OK, source=None, details=None, sessionmaker_=None):
+    # sessionmaker_ used for tests, AuditSessionLocal is used in production
     factory = sessionmaker_ or AuditSessionLocal
 
     try:
@@ -31,4 +32,4 @@ def emit_trace_events(trace_id, stage, status=STATUS.OK, source=None, details=No
             db.commit()
     except Exception as e:
         logger.error(f"Trace emit failed - [{trace_id}/{stage}]: {e}")
-        # No raise as
+        # Not raised to prevent breaking ingestion, auidt should just observe

@@ -4,8 +4,11 @@ import pytest
 from pathlib import Path
 from dotenv import dotenv_values
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+from sqlalchemy import text
 from sqlalchemy.orm import sessionmaker
+from app.db_models.sensor_models import TraceEvent
 from fastapi.testclient import TestClient
+import app.services.trace_events as trace_events_module
 
 # Set up testdb environment details
 _env = dotenv_values(Path(__file__).resolve().parents[2] / ".env")
@@ -73,9 +76,20 @@ def client(db_session):
         yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
+
+    bind = db_session.get_bind()
+    test_audit_factory = lambda: TestingSessionLocal(
+        bind=bind,
+        join_transaction_mode="create_savepoint"
+    )
+    original_audit = trace_events_module.AuditSessionLocal
+    trace_events_module.AuditSessionLocal = test_audit_factory
+
     with TestClient(app) as test_client:
         app.state.db_sessionmaker = lambda: db_session
         yield test_client
+
+    trace_events_module.AuditSessionLocal = original_audit
     app.dependency_overrides.clear()
 
 @pytest.fixture()

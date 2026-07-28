@@ -15,7 +15,7 @@ from app.routers import sensor_ingestion, react_router
 from app.services.ingest_failures import ingest_failures
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("System Log")
+logger = logging.getLogger("SystemLog")
 
 logger.info("Logging system information")
 

@@ -5,6 +5,8 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from app.db.write_record import write_new_record
 from app.db_models.sensor_models import AnomalyLog, GenerationData, WeatherData
+from app.services.trace_events import emit_trace_events, STATUS, STAGE
+
 logger = logging.getLogger("IngestFailures")
 
 '''
@@ -66,4 +68,12 @@ def ingest_failures(invalid_body: Any, errors: list, source: str, db: Session) -
 
     write_new_record(sensor_record, trace_id, db)
 
+    # Writes into trace_events
+    emit_trace_events(
+        trace_id,
+        STAGE.VALIDATION_FAILED,
+        status=STATUS.FAILED,
+        source=source,
+        details={"errors": errors},
+    )
     return trace_id

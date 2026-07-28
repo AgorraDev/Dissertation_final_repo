@@ -1,4 +1,4 @@
-from app.db_models.sensor_models import AnomalyLog, WeatherData, GenerationData
+from app.db_models.sensor_models import AnomalyLog, WeatherData, GenerationData, TraceEvent
 from app.tests.conftest import db_session
 from datetime import datetime
 
@@ -51,6 +51,21 @@ def test_weather_duplicate_timestamp_does_not_duplicate_db_record(client, db_ses
     assert db_session.query(WeatherData).filter_by(
         date_time=datetime(2015, 1, 1, 9, 0, 0)).count() == 1
 
+def test_validation_failure_emits_failed_attempt(client, db_session):
+    response = client.post(WEATHER_URL, json={
+                "utc_timestamp": "2015-01-01T09:00:00Z",
+                 "GB_temperature": None,
+                 "GB_radiation_direct_horizontal": 0.0,
+                 "GB_radiation_diffuse_horizontal": 0.0,
+                })
+    trace_id = response.json()["trace_id"]
+
+    events = db_session.query(TraceEvent).filter_by(
+        trace_id=trace_id, stage="validation_failed").all()
+    assert len(events) == 1
+    assert events[0].status == "failed"
+    assert events[0].details["errors"]
+
 '''GENERATION TESTS'''
 
 GENERATION_URL = "/api/v1/sensors/ingest/generation"
@@ -95,3 +110,18 @@ def test_generation_duplicate_timestamp_does_not_duplicate_db_record(client, db_
     client.post(GENERATION_URL, json=VALID_GENERATION)
     assert db_session.query(GenerationData).filter_by(
         date_time=datetime(2015, 1, 1, 9, 0, 0)).count() == 1
+
+def test_duplicate_persists_are_rejected_though_data_rolls_back(client, db_session):
+    client.post(GENERATION_URL, json=VALID_GENERATION)
+    client.post(GENERATION_URL, json=VALID_GENERATION)
+
+    # assert one row survived duplicate insert on unique constraint (timestamp)
+    assert db_session.query(GenerationData).filter_by(
+        date_time=datetime(2015, 1, 1, 9, 0, 0)).count() == 1
+
+    # assert rejection is still recorded
+    stages = [e.stage for e in db_session.query(TraceEvent).order_by(TraceEvent.id). all()]
+    assert "persisted" in stages
+    assert "duplicate_rejected" in stages
+
+
