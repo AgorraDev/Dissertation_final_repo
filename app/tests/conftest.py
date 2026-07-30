@@ -99,3 +99,11 @@ def audit_factory(db_session):
         bind=bind,
         join_transaction_mode="create_savepoint"
     )
+
+@pytest.fixture()
+def audit_to_test_session(db_session, monkeypatch):
+    bind = db_session.get_bind()
+    monkeypatch.setattr(
+        "app.services.trace_events.AuditSessionLocal",
+        lambda: TestingSessionLocal(bind=bind, join_transaction_mode="create_savepoint")
+    )

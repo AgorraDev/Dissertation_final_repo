@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.db.write_record import write_new_record
 from app.db_models.sensor_models import GenerationData, WeatherData
 from app.services.trace_events import emit_trace_events, STAGE, STATUS
+from app.tasks import run_detection
 
 logger = logging.getLogger("IngestSuccess")
 
@@ -38,4 +39,14 @@ def ingest_success(plant_data, source: str, trace_id: str, db: Session) -> bool:
         source=source,
         details={"date_time": plant_data.utc_timestamp.isoformat()},
     )
+
+    if is_written:
+        emit_trace_events(trace_id, STAGE.ENQUEUED, source=source)
+        try:
+            # Using delay runs detection task inline meaning it retains the logical chain order 'persisted -> enqueued'
+            run_detection.delay(trace_id, source)
+        except Exception as exception:
+            emit_trace_events(trace_id, STAGE.DETECTION_SKIPPED, status=STATUS.FAILED,
+                              source=source, details={"reason": f"enqueue failed: {exception}"})
+
     return is_written

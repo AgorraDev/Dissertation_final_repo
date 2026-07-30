@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Energy Anomaly Webapp"
     PROJECT_VERSION: str = "0.0.1"
 
+    REDIS_URL: str
+
     DATABASE_USER: str
     DATABASE_PASSWORD: str
     DATABASE_SERVER: str
@@ -25,6 +27,7 @@ class Settings(BaseSettings):
             f"@{self.DATABASE_SERVER}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
             f"?options=-c%20search_path={self.DATABASE_SCHEMA}"
                  )
+
     model_config = SettingsConfigDict(env_file=ENV_FILE, env_file_encoding="utf-8", extra="ignore",)
 
 settings = Settings()

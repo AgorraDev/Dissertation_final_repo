@@ -55,4 +55,4 @@ def test_end_to_end_restructure_of_full_chain(client, db_session):
     body = client.get(TRACE_URL.format(trace_id)).json()
     stages = [e["stage"] for e in body]
 
-    assert stages == ["received", "validated", "persisted"]
+    assert stages == ["received", "validated", "persisted", "enqueued"]

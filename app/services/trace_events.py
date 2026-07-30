@@ -11,7 +11,11 @@ class STAGE(StrEnum):
     VALIDATION_FAILED = "validation_failed"
     PERSISTED = "persisted"
     DUPLICATE_REJECTED = "duplicate_rejected"
+    ENQUEUED = "enqueued"
+    DETECTION_STARTED = "detection_started"
+    SCORED = "scored"
     DETECTION_SKIPPED = "detection_skipped"
+    DETECTION_FAILED = "detection_failed"
 
 class STATUS(StrEnum):
     OK ="ok"
