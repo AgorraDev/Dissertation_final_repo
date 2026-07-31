@@ -78,9 +78,9 @@ def trace_detail(trace_id: str, db: Session = Depends(get_db)):
     return events
 
 @router.get("/detections", response_model=List[DetectionResultOut])
-def detections(only_anomalies: bool = False, db: Session = Depends(get_db)):
+def detections(anomalies_only: bool = False, db: Session = Depends(get_db)):
     query = select(DetectionResultModel).order_by(DetectionResultModel.date_time.desc(),
                                                   DetectionResultModel.id.desc())
-    if only_anomalies:
+    if anomalies_only:
         query = query.where(DetectionResultModel.anomaly.is_(True))
     return db.scalars(query).all()

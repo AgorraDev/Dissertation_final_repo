@@ -2,3 +2,4 @@
 .env
 .venv
 /WriteUpDocs
+app/ml/models

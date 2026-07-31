@@ -23,13 +23,16 @@ def test_scores_a_present_weather_row(db_session, audit_to_test_session):
 
     assert stages(db_session, "detection-1") == ["detection_started", "scored"]
     scored = db_session.query(TraceEvent).filter(TraceEvent.trace_id == "detection-1", TraceEvent.stage == "scored").one()
-    assert scored.details == {"rule_codes": [], "anomaly": False}
+    assert scored.details == {"detectors": {"basic-rules": False}}
 
 def test_scores_a_present_generation_row(db_session, audit_to_test_session):
     add_mock_generation_data(db_session, "detection-2")
     run_anomaly_detection("detection-2", "generation_data", db_session)
 
-    detection_result = db_session.query(DetectionResult).filter(DetectionResult.trace_id == "detection-2").one()
+    detection_result = db_session.query(DetectionResult).filter(
+        DetectionResult.trace_id == "detection-2",
+        DetectionResult.detector == "basic-rules").one()
+
     assert detection_result.anomaly == True
     assert "R1_DROPOUT_DURING_DAY_TIME" in detection_result.rule_codes
 
@@ -50,4 +53,5 @@ def test_second_run_keeps_single_detection_result(db_session, audit_to_test_sess
     run_anomaly_detection("detection-5", "weather_data", db_session)
     run_anomaly_detection("detection-5", "weather_data", db_session)
 
-    assert db_session.query(DetectionResult).filter_by(trace_id="detection-5").count() == 1
+    assert db_session.query(DetectionResult).filter_by(
+        trace_id="detection-5", detector="basic-rules").count() == 1
