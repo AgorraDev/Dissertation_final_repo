@@ -8,9 +8,11 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     DateTime,
-    UUID,
+    Boolean,
     JSON,
-    Enum)
+    Enum,
+    UniqueConstraint,
+    ARRAY, )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from app.db.database import Base
@@ -73,6 +75,24 @@ class TraceEvent(Base):
     details = Column(JSONB)
     # lambda function to call datetime.now on each insert rather than once at model creation
     created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), index=True)
+
+class DetectionResult(Base):
+    __tablename__ = "detection_results"
+    id = Column(Integer, primary_key=True, index=True)
+    trace_id = Column(String, index=True, nullable=False)
+    detector = Column(String, nullable=False)
+    detector_version = Column(String, nullable=False)
+    source = Column(String, nullable=False)
+    date_time = Column(DateTime, index=True, nullable=False)
+    anomaly = Column(Boolean, nullable=False, default=False, index=True)
+    score = Column(Float)
+    rule_codes = Column(ARRAY(String), nullable=False, default=list)
+    details = Column(JSONB)
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), index=True)
+
+    __table_args__ = (
+        UniqueConstraint("trace_id", "detector", "detector_version", name="unique_detection_trace_version"),
+    )
 
 class AnomalyLog(Base):
     __tablename__ = "anomaly_log"

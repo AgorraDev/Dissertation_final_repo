@@ -1,10 +1,20 @@
 from datetime import datetime
 
-from app.db_models.sensor_models import AnomalyLog, WeatherData, GenerationData
+from app.db_models.sensor_models import AnomalyLog, WeatherData, GenerationData, DetectionResult
+from app.schemas.sensor_schemas import DetectionResultOut
 
 WEATHER_URL = "/api/v1/react/weather"
 GENERATION_URL = "/api/v1/react/generation"
 ANOMALY_URL = "/api/v1/react/anomaly_log"
+DETECTIONS_URL = "/api/v1/react/detections"
+
+def add_detection(db, trace_id, anomaly, rule_codes, hour=11):
+    db.add(DetectionResult(
+        trace_id=trace_id, detector="basic-rules", detector_version="v1.0",
+        source="generation_data", date_time=datetime(2016,4,17,hour,0,0),
+        anomaly=anomaly, score=None, rule_codes=rule_codes, details={"rule_codes": rule_codes, "anomaly": anomaly},
+    ))
+    db.flush()
 
 def test_weather_endpoint_returns_seeded_row(client, db_session):
     db_session.add(WeatherData(
@@ -81,3 +91,32 @@ def test_empty_tables_return_empty_list(client):
     assert client.get(WEATHER_URL).json() == []
     assert client.get(GENERATION_URL).json() == []
     assert client.get(ANOMALY_URL).json() == []
+
+def test_detections_endpoint_returns_seeded_row(client, db_session):
+    add_detection(db_session, "detection_trace_1", True, ["R1_DROPOUT_DURING_DAY_TIME"])
+
+    body = client.get(DETECTIONS_URL).json()
+
+    assert len(body) == 1
+    row = body[0]
+    assert set(row) == {
+        "trace_id", "detector", "detector_version", "source", "date_time", "anomaly", "score", "rule_codes",
+        "details", "created_at",
+    }
+    assert row["trace_id"] == "detection_trace_1"
+    assert row["anomaly"] is True
+    assert row["rule_codes"] == ["R1_DROPOUT_DURING_DAY_TIME"]
+
+def test_detections_only_anomalies_filter(client, db_session):
+    add_detection(db_session, "clean-detection", False, [], hour=12)
+    add_detection(db_session, "anomaly-detection", True, ["R1_DROPOUT_DURING_DAY_TIME"], hour=11)
+
+    all_rows = client.get(DETECTIONS_URL).json()
+    anom_rows = client.get(DETECTIONS_URL, params={"only_anomalies": "true"}).json()
+
+    assert len(all_rows) == 2
+    assert len(anom_rows) == 1
+    assert anom_rows[0]["trace_id"] == "anomaly-detection"
+
+def test_detections_empty_table_returns_empty_list(client):
+    assert client.get(DETECTIONS_URL).json() == []

@@ -67,7 +67,21 @@ FRONTEND MODELS
 class TraceEventOut(BaseModel):
     stage: str
     status: str
-    source: str | None
+    source: str
+    details: Any = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+class DetectionResultOut(BaseModel):
+    trace_id: str
+    detector: str
+    detector_version: str
+    source: str
+    date_time: datetime
+    anomaly: bool
+    score: float | None = None
+    rule_codes: list[str]
     details: Any = None
     created_at: datetime
 

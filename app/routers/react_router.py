@@ -3,12 +3,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from app.db.database import get_db
-from app.schemas.sensor_schemas import WeatherDataTrace, GenerationDataTrace, TraceEventOut
+from app.schemas.sensor_schemas import WeatherDataTrace, GenerationDataTrace, TraceEventOut, DetectionResultOut
 from app.db_models.sensor_models import (
     WeatherData as WeatherModel,
     GenerationData as GenerationModel,
     AnomalyLog as AnomalyModel,
     TraceEvent as TraceEventModel,
+    DetectionResult as DetectionResultModel,
 )
 
 router = APIRouter()
@@ -75,3 +76,11 @@ def trace_detail(trace_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail=f"No trace events found for {trace_id}")
 
     return events
+
+@router.get("/detections", response_model=List[DetectionResultOut])
+def detections(only_anomalies: bool = False, db: Session = Depends(get_db)):
+    query = select(DetectionResultModel).order_by(DetectionResultModel.date_time.desc(),
+                                                  DetectionResultModel.id.desc())
+    if only_anomalies:
+        query = query.where(DetectionResultModel.anomaly.is_(True))
+    return db.scalars(query).all()
