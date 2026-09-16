@@ -16,8 +16,9 @@ Handles logging and writing to database of any bad data incoming into the system
 
 
 def check_float(value: Any) -> float | None:
-    '''Check if a value is or can be floated, if not return NoneType
-        Protects against bad type incoming data (nulls etc.)
+    '''
+    Check if a value is or can be floated, if not return NoneType
+    Protects against bad type incoming data (nulls etc.)
     '''
     try:
         return float(value)

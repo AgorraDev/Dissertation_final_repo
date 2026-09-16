@@ -29,9 +29,10 @@ def ingest_success(plant_data, source: str, trace_id: str, db: Session) -> bool:
             radiation_diffuse_horizontal=plant_data.GB_radiation_diffuse_horizontal,
     )
 
-    # True unless duplicate insert is rejected
+    # Write record to db
     is_written = write_new_record(record, trace_id, db)
 
+    #if not written then failed as duplicate
     emit_trace_events(
         trace_id,
         STAGE.PERSISTED if is_written else STAGE.DUPLICATE_REJECTED,
@@ -39,13 +40,15 @@ def ingest_success(plant_data, source: str, trace_id: str, db: Session) -> bool:
         source=source,
         details={"date_time": plant_data.utc_timestamp.isoformat()},
     )
-
+    # if written emit as enqueued and attempt to add to worker queue
     if is_written:
         emit_trace_events(trace_id, STAGE.ENQUEUED, source=source)
         try:
+            # Enqueue to celery worker
             # Using delay runs detection task inline meaning it retains the logical chain order 'persisted -> enqueued'
             run_detection.delay(trace_id, source)
         except Exception as exception:
+            # On exception, detection is skipped and status set to failed. Written to db
             emit_trace_events(trace_id, STAGE.DETECTION_SKIPPED, status=STATUS.FAILED,
                               source=source, details={"reason": f"enqueue failed: {exception}"})
 

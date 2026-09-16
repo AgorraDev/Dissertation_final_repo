@@ -13,6 +13,7 @@ from app.db_models import sensor_models
 
 from app.routers import sensor_ingestion, react_router
 from app.services.ingest_failures import ingest_failures
+from app.services.trace_events import emit_trace_events
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("SystemLog")
@@ -74,14 +75,16 @@ app.include_router(
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     '''
-    Intercept bad data before endpoint. Parse and log bad data.
+    Intercept bad data before endpoint. Parse and record bad data.
     '''
     source = "generation_data" if "generation" in request.url.path else "weather_data"
     errors = jsonable_encoder(exc.errors())
 
-    # Open session, try to write to Anomaly Log table, then close session
+    # Open session, record the failure, then close session
     # Get Session from app.state - this allows us to test exception handler without writing to real db
     db = request.app.state.db_sessionmaker()
+    trace_id=None
+
     try:
         trace_id = ingest_failures(exc.body, errors, source, db)
     except OperationalError as e:

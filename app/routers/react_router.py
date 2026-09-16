@@ -12,6 +12,10 @@ from app.db_models.sensor_models import (
     DetectionResult as DetectionResultModel,
 )
 
+'''
+Define endpoints used by the React frontend to query the database. 
+Returns data in json format for frontend readability
+'''
 router = APIRouter()
 
 @router.get("/weather", response_model=List[WeatherDataTrace])

@@ -1,3 +1,4 @@
+from typing import Literal
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -8,8 +9,9 @@ Use Pydantic BaseSettings
 ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "Energy Anomaly Webapp"
+    PROJECT_NAME: str = "Energy Anomaly Detection System"
     PROJECT_VERSION: str = "0.0.1"
+    TRACE_LEVEL: Literal["off", "minimal", "full"] = "full"
 
     REDIS_URL: str
 

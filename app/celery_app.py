@@ -16,7 +16,3 @@ celery_app.conf.update(
     task_default_retry_delay=5,
     task_max_retries=3,
 )
-
-@celery_app.task(name="ping")
-def ping():
-    return "pong"

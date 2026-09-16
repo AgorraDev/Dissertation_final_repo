@@ -1,4 +1,6 @@
 import logging
+import time
+from app.core.config import settings
 from app.celery_app import celery_app
 from app.db.database import SessionLocal
 from app.services.anomaly_detection import run_anomaly_detection
@@ -9,6 +11,8 @@ logger = logging.getLogger("Tasks")
 @celery_app.task(bind=True, name="run_detection", max_retries=3, default_retry_delay=5)
 def run_detection(self, trace_id: str, source: str):
     '''
+    Celery task to run the anomaly detection task.
+    Includes max retries for failing detection if the worker cannot process.
     '''
     db = SessionLocal()
     try:

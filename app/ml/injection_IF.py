@@ -27,8 +27,8 @@ def overwrite_generation(df, positions, new_generation_values):
     df.loc[positions, GENERATION_COL] = new_generation_values
 
     capacity = df.loc[positions, CAPACITY_COL].to_numpy()
-    safe_capaacity = np.where(capacity > 0, capacity, 1.0)
-    df.loc[positions, PROFILE_COL] = np.where(capacity > 0, np.asarray(new_generation_values) / safe_capaacity, 0.0)
+    safe_capacity = np.where(capacity > 0, capacity, 1.0)
+    df.loc[positions, PROFILE_COL] = np.where(capacity > 0, np.asarray(new_generation_values) / safe_capacity, 0.0)
 
 def inject_faults(df, seed=42, faults_per_type=20, window_size=5):
     random_generator = np.random.default_rng(seed)

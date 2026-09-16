@@ -112,7 +112,7 @@ def test_detections_only_anomalies_filter(client, db_session):
     add_detection(db_session, "anomaly-detection", True, ["R1_DROPOUT_DURING_DAY_TIME"], hour=11)
 
     all_rows = client.get(DETECTIONS_URL).json()
-    anom_rows = client.get(DETECTIONS_URL, params={"only_anomalies": "true"}).json()
+    anom_rows = client.get(DETECTIONS_URL, params={"anomalies_only": "true"}).json()
 
     assert len(all_rows) == 2
     assert len(anom_rows) == 1

@@ -10,8 +10,6 @@ Helps keep backend data passing robust.
 
 logger = logging.getLogger("Schema Log")
 
-# Create BaseModels to force data structure
-
 '''
 INCOMING DATA FROM DATA STREAM
 '''

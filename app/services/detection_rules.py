@@ -25,14 +25,19 @@ def create_context(row) -> RuleContext:
 Rule Logic
 '''
 def dropout_during_daytime_hours(context: RuleContext) -> bool:
-    # flags anomaly if solar generation is 0 during daylight hours.
-    # for year-round generation the hourly context is narrowed to between 08.00-15.00 hours.
-    # This ignores seasonal moving hours due to longer summer days/ shorter winter days but
-    # gives a decent rule year-round. Could be upgraded to consider different hours for
-    # different months.
+    '''
+    flags anomaly if solar generation is 0 during daylight hours.
+    for year-round generation the hourly context is narrowed to between 08.00-15.00 hours.
+    This ignores seasonal moving hours due to longer summer days/ shorter winter days but
+    gives a decent rule year-round. Could be upgraded to consider different hours for
+    different months.
+    '''
     return context.generation == 0 and 8 <= context.hour <= 15
 
 def generate_during_night_hours(context: RuleContext) -> bool:
+    '''
+    flags anomaly if solar generation is 0 during night hours which should not be possible.
+    '''
     # guard here to prevent division errors
     if not context.capacity:
         return False
@@ -41,12 +46,18 @@ def generate_during_night_hours(context: RuleContext) -> bool:
     return (context.hour >= 23 or context.hour <=2) and (context.generation > 0.01 * context.capacity)
 
 def generation_exceeds_capacity(context: RuleContext) -> bool:
+    '''
+    flags anomaly if solar generation exceeds capacity which should not be possible.
+    '''
     if not context.capacity:
         return False
     # Multiplication here again to account for capacity change over the years
     return context.generation > 1.05 * context.capacity
 
 def solar_profile_mismatch(context: RuleContext) -> bool:
+    '''
+    flags anomaly if solar generation mismatch is outside a threshold.
+    '''
     if not context.capacity:
         return False
     # Checks the calculation for solar_profile and evaluates it within a threshold against the stored one.

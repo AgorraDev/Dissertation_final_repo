@@ -4,11 +4,8 @@ import pytest
 from pathlib import Path
 from dotenv import dotenv_values
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from sqlalchemy import text
 from sqlalchemy.orm import sessionmaker
-from app.db_models.sensor_models import TraceEvent
 from fastapi.testclient import TestClient
-import app.services.trace_events as trace_events_module
 
 # Set up testdb environment details
 _env = dotenv_values(Path(__file__).resolve().parents[2] / ".env")
@@ -41,6 +38,7 @@ _ensure_test_schema()
 # App imports
 from app.db.database import Base, engine, get_db
 from app.main import app
+import app.services.trace_events as trace_events_module
 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False)
 

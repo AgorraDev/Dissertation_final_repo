@@ -8,6 +8,11 @@ from app.db.database import get_db
 from app.services.ingest_success import ingest_success
 from app.services.trace_events import emit_trace_events, STAGE
 
+
+'''
+Define ingestion endpoints for where incoming sensor data is processed in the backend.
+Used to processes different weather and generation data formats. 
+'''
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("IngestionLogger")
 router = APIRouter()

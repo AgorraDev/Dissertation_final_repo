@@ -4,7 +4,7 @@ from app.core.config import settings
 
 '''
 Initialise database connection pool.
-Manage sessions
+Manage sessions.
 '''
 
 engine = create_engine(settings.DATABASE_URL)
@@ -19,6 +19,7 @@ AuditSessionLocal = sessionmaker(
     autoflush=False,
     bind=engine,
 )
+
 Base = declarative_base()
 
 def get_db():

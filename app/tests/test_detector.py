@@ -8,7 +8,7 @@ def test_iforest_expected_shape_returns():
     result = score_reading(datetime(2019,6,21,12,0,0),
                            generation=6000.0, capacity=8000.0)
 
-    assert set(result) == {"anomaly", "score", "version"}
+    assert set(result) == {"anomaly", "score", "version", "features"}
     assert isinstance(result["anomaly"], bool)
 
 def test_iforest_ranks_dropout_above_healthy():

@@ -22,13 +22,17 @@ def load():
     return artifact
 
 def score_reading(timestamp, generation: float, capacity: float) -> dict | None:
+    # Load the model if one exists, else return none
     art = load()
     if art is None:
         return None
-    features = [compute_features(timestamp, generation, capacity)]
-    prediction = art["model"].predict(features)[0]
-    raw = art["model"].score_samples(features)[0]
+
+    feature_values = [compute_features(timestamp, generation, capacity)]
+    prediction = art["model"].predict(feature_values)[0]
+    raw = art["model"].score_samples(feature_values)[0]
     return {
             "anomaly": bool(prediction == -1),
             "score": float(raw),
-            "version": art["metadata"]["version"],}
+            "version": art["metadata"]["version"],
+            "features": {name: float(value) for name, value in zip(art["feature_names"], feature_values[0])},
+            }
